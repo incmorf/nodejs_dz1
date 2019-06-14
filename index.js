@@ -75,4 +75,5 @@ qreadDir(base, (file) => {
 
 if (del === 'delete') {
   delBase(base);
+  console.log('All done');
 }
