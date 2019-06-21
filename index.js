@@ -1,8 +1,14 @@
 const fs = require('fs');
 const path = require('path');
+const util = require('util')
 
-// const base = path.join(__dirname, 'incoming');
-// const targetDir = path.join(__dirname, 'outcoming');
+const mkdir = util.promisify(fs.mkdir);
+const link = util.promisify(fs.link);
+const copyFile = util.promisify(fs.copyFile);
+const unlink = util.promisify(fs.unlink);
+const rmdir = util.promisify(fs.rmdir);
+const readdir = util.promisify(fs.readdir);
+const lstat = util.promisify(fs.lstat);
 
 const args = process.argv.slice(2);
 const base = args[0];
@@ -14,66 +20,54 @@ if (!base || !targetDir) {
   process.exit(1);
 }
 
-const delBase = (base) => {
-  fs.readdir(base, (err, files) => {
-    if (err) throw err;
-    if (files.length === 0) {
-      fs.rmdir(base, (err) => {
-        if (err) throw err;
-      });
-    } else delBase(base);
-  });
-};
+const qreadDir = async (base) => {
+  let files = await readdir(base);
 
-const qreadDir = (base, onFile) => {
-  fs.readdir(base, (err, files) => {
-    if (err) throw err;
+  for (let i = 0; i < files.length; i++) {
+    let pathF = path.join(base, files[i]);
 
-    for (let i = 0; i < files.length; i++) {
-      let pathF = path.join(base, files[i]);
-
-      fs.stat(pathF, (err, stats) => {
-        if (err) throw err;
-        if (stats.isDirectory()) {
-          qreadDir(pathF, onFile);
-          qDeldir(pathF);
-        } else {
-          onFile(pathF);
-        }
-      });
+    let stats = await lstat(pathF);
+    if (stats.isDirectory()) {
+      await qreadDir(pathF);
+      await qDeldir(pathF);
+    } else {
+      await onFile(pathF);
     }
-  });
+  }
 };
 
-const qDeldir = (base) => {
-  fs.readdir(base, (err, files) => {
-    if (err) throw err;
-    if (files.length === 0) {
-      fs.rmdir(base, (err) => {
-        if (err) throw err;
-      });
-    } else qDeldir(base);
-  });
+const qDeldir = async (base) => {
+  let files = await readdir(base);
+  if (files.length === 0) {
+    await rmdir(base);
+  } else await qDeldir(base);
 };
 
-qreadDir(base, (file) => {
+const onFile = async (file) => {
   let fileData = path.parse(file);
   let firstL = fileData.name[0];
   let newDir = path.join(targetDir, firstL);
-  fs.mkdir(newDir, { recursive: true }, (err) => {
-    if (err) throw err;
+  try {
+    await mkdir(newDir, { recursive: true });
+  } catch (err) {
+    console.error(err);
+    process.exit(1);
+  }
+  try {
+    await copyFile(file, path.join(newDir, fileData.base));
+  } catch (err) {
+    console.error(err);
+    process.exit(1);
+  }
 
-    fs.link(file, path.join(newDir, fileData.base), (err) => {
-      if (err && err.code !== 'EEXIST') throw err;
-      fs.unlink(file, (err) => {
-        if (err) throw err;
-        console.log('File deleted');
-      });
-    });
-  });
+  await unlink(file);
+};
+
+qreadDir(base).then(function () {
+  console.log('success');
 });
 
 if (del === 'delete') {
-  delBase(base);
+  qDeldir(base);
   console.log('All done');
 }
