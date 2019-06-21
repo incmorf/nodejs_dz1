@@ -20,13 +20,6 @@ if (!base || !targetDir) {
   process.exit(1);
 }
 
-const delBase = async (base) => {
-  let files = await readdir(base);
-  if (files.length === 0) {
-    await rmdir(base);
-  } else await delBase(base);
-};
-
 const qreadDir = async (base) => {
   let files = await readdir(base);
 
@@ -75,6 +68,6 @@ qreadDir(base).then(function () {
 });
 
 if (del === 'delete') {
-  delBase(base);
+  qDeldir(base);
   console.log('All done');
 }
