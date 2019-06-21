@@ -14,17 +14,6 @@ if (!base || !targetDir) {
   process.exit(1);
 }
 
-const delBase = (base) => {
-  fs.readdir(base, (err, files) => {
-    if (err) throw err;
-    if (files.length === 0) {
-      fs.rmdir(base, (err) => {
-        if (err) throw err;
-      });
-    } else delBase(base);
-  });
-};
-
 const qreadDir = (base, onFile) => {
   fs.readdir(base, (err, files) => {
     if (err) throw err;
@@ -63,7 +52,7 @@ qreadDir(base, (file) => {
   fs.mkdir(newDir, { recursive: true }, (err) => {
     if (err) throw err;
 
-    fs.link(file, path.join(newDir, fileData.base), (err) => {
+    fs.copyFile(file, path.join(newDir, fileData.base), (err) => {
       if (err && err.code !== 'EEXIST') throw err;
       fs.unlink(file, (err) => {
         if (err) throw err;
@@ -74,6 +63,6 @@ qreadDir(base, (file) => {
 });
 
 if (del === 'delete') {
-  delBase(base);
+  qDeldir(base);
   console.log('All done');
 }
