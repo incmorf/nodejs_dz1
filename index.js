@@ -4,10 +4,11 @@ let interval;
 
 http.createServer(async (req, res) => {
   if (req.method === 'GET' && req.url !== '/favicon.ico') {
+    interval && clearInterval(interval);
     let startTime = new Date();
     let stopTime = startTime.setSeconds(startTime.getSeconds() + timeOut / 1000);
 
-    let waitForInterval = async () => new Promise(resolve => {
+    let waitForInterval = () => new Promise(resolve => {
       interval = setInterval(() => {
         console.log(new Date().toUTCString());
         let currentTime = new Date();
@@ -18,10 +19,9 @@ http.createServer(async (req, res) => {
         }
       }, 1000);
     });
-    let intervalFinished = await waitForInterval();
-    if (intervalFinished) {
-      clearInterval(interval);
-      res.end(new Date().toUTCString());
-    }
+    waitForInterval()
+      .then(function () {
+        res.end(new Date().toUTCString());
+      });
   }
 }).listen(3000);
