@@ -23,13 +23,14 @@ const walk = function (dir, callbackOnFile, callbackOnFolder, done) {
 
       let filePath = list[i++];
 
-      if (!filePath) return done(null);
+      if (!filePath) {
+        return callbackOnFolder(dir, done);
+      }
 
       filePath = path.join(dir, filePath);
 
       fs.stat(filePath, (_, stat) => {
         if (stat && stat.isDirectory()) {
-          callbackOnFolder(filePath, next);
           walk(filePath, callbackOnFile, callbackOnFolder, next);
         } else {
           callbackOnFile(filePath, next);
@@ -38,33 +39,46 @@ const walk = function (dir, callbackOnFile, callbackOnFolder, done) {
     };
     next();
   });
+};
 
-}
-const onFolder = (filePath, done) => {  
-  fs.readdir(filePath, (_, files) => {
-    console.log(files);
-  })
-  done();
+const onFolder = (filePath, done) => {
+  fs.rmdir(filePath, (err) => {
+
+    console.log('Колбек папки');
+    done();
+  });
 };
 
 const onFIle = (filePath, done) => {
   try {
-
     let file = path.parse(filePath);
     let firstLetter = file.base.slice(0, 1);
     let newDIr = path.join(targetDir, firstLetter);
 
-    fs.mkdir(newDIr, { recursive: true }, (err) => {
-      if (err) throw err;
-      fs.copyFile(filePath, path.join(newDIr, file.base), (_) => {
+    const copyFile = () => {
+      fs.copyFile(filePath, path.join(newDIr, file.base), (err) => {
+        // console.log(err);
+        
         fs.unlink(filePath, (_) => {
+          console.log('Копирование файла');
 
+          done();
         });
       });
+    };
+
+    fs.access(newDIr, (err) => {
+      if (err) {
+        console.log('Создание папки');
+        
+        fs.mkdir(newDIr, (err) => {
+          if (err) throw err;
+          copyFile();
+        });
+      } else {
+        copyFile();
+      }
     });
-
-    done();
-
   } catch (err) {
     done(err);
   }
