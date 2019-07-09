@@ -58,7 +58,7 @@ const onFIle = (filePath, done) => {
     const copyFile = () => {
       fs.copyFile(filePath, path.join(newDIr, file.base), (err) => {
         // console.log(err);
-        
+
         fs.unlink(filePath, (_) => {
           console.log('Копирование файла');
 
@@ -70,7 +70,7 @@ const onFIle = (filePath, done) => {
     fs.access(newDIr, (err) => {
       if (err) {
         console.log('Создание папки');
-        
+
         fs.mkdir(newDIr, (err) => {
           if (err) throw err;
           copyFile();
